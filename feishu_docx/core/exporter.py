@@ -425,11 +425,20 @@ class FeishuExporter:
         """从文档 URL 提取域名并写入 SDK"""
         try:
             parsed = urlparse(url)
-            domain = parsed.netloc.strip()
-            if domain:
-                self.sdk.set_document_domain(domain)
+            host = parsed.netloc.strip().lower()
+            if host:
+                host = host.split("@")[-1].split(":")[0]
+                parts = host.split(".")
+                domain = None
+                for candidate in ("feishu", "larksuite", "larkoffice"):
+                    if candidate in parts:
+                        domain = candidate
+                        break
+                self.sdk.set_document_domain(domain or "feishu")
+            else:
+                self.sdk.set_document_domain("feishu")
         except Exception:
-            pass
+            self.sdk.set_document_domain("feishu")
 
     # ==========================================================================
     # 知识空间批量导出
