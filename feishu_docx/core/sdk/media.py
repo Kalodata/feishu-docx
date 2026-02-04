@@ -92,11 +92,12 @@ class MediaAPI(SubModule):
         raise RuntimeError(f"上传图片失败 ({p.name})")
 
     def get_image(self, file_token: str, access_token: str) -> Optional[str]:
-        """下载云文档中的图片
+        """下载云文档中的图片或返回可下载 URL
 
         策略：
         1. 首先尝试直接下载（适用于有权限的文档）
         2. 如果失败（403/401等权限错误或空响应），使用临时下载 URL（适用于只读文档）
+        3. 如果临时 URL 失败，返回拼接的下载 URL（不再下载）
         """
         import httpx
 
@@ -150,28 +151,15 @@ class MediaAPI(SubModule):
             else:
                 console.print(f"[red]获取临时下载 URL 失败[/red]")
 
-            # 策略3: 临时 URL 获取/下载失败，尝试拼接域名直接下载
+            # 策略3: 临时 URL 获取/下载失败，返回拼接域名下载 URL
             document_domain = getattr(self._core, "document_domain", None)
             if document_domain:
                 direct_url = (
                     f"https://internal-api-drive-stream.{document_domain}.com/"
                     f"space/api/box/stream/download/v2/cover/{file_token}"
                 )
-                try:
-                    direct_response = httpx.get(
-                        direct_url,
-                        headers={"Authorization": f"Bearer {access_token}"},
-                        timeout=30.0,
-                    )
-                    if direct_response.status_code == 200:
-                        file_path = self.temp_dir / f"{file_token}{extension}"
-                        file_path.write_bytes(direct_response.content)
-                        console.print(f"[green]✓ 使用拼接 URL 下载成功[/green]")
-                        return str(file_path)
-                    else:
-                        console.print(f"[red]拼接 URL 下载失败 (HTTP {direct_response.status_code})[/red]")
-                except Exception as e:
-                    console.print(f"[red]拼接 URL 下载异常: {e}[/red]")
+                console.print("[yellow]使用拼接 URL 作为最终降级（不再下载）[/yellow]")
+                return direct_url
             else:
                 console.print("[red]未设置文档域名，无法拼接下载 URL[/red]")
 

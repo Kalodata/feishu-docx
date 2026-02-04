@@ -277,13 +277,15 @@ class DocumentParser:
         if bt == BlockType.IMAGE:
             if not block.image or not block.image.token:
                 return ""
-            file_path = self.sdk.media.get_image(block.image.token, access_token=self.user_access_token)
-            if file_path:
+            file_path_or_url = self.sdk.media.get_image(block.image.token, access_token=self.user_access_token)
+            if file_path_or_url:
+                if file_path_or_url.startswith(("http://", "https://")):
+                    return f"![image]({file_path_or_url})"
                 # 使用相对路径：资源目录名/文件名
                 if self.assets_dir:
-                    rel_path = f"{self.assets_dir.name}/{Path(file_path).name}"
+                    rel_path = f"{self.assets_dir.name}/{Path(file_path_or_url).name}"
                     return f"![image]({rel_path})"
-                return f"![image]({file_path})"
+                return f"![image]({file_path_or_url})"
             else:
                 # 降级方案：使用临时下载 URL（适用于只读权限）
                 download_url = self.sdk.media.get_file_download_url(block.image.token, self.user_access_token)
