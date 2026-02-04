@@ -91,23 +91,57 @@ class MediaAPI(SubModule):
         raise RuntimeError(f"上传图片失败 ({p.name})")
 
     def get_image(self, file_token: str, access_token: str) -> Optional[str]:
-        """下载云文档中的图片"""
+        """下载云文档中的图片
+
+        策略：
+        1. 首先尝试直接下载（适用于有权限的文档）
+        2. 如果失败（403/401等权限错误），使用临时下载 URL（适用于只读文档）
+        """
+        import httpx
+
+        # 策略1: 尝试直接下载
         request = DownloadMediaRequest.builder().file_token(file_token).build()
         option = self._build_option(access_token)
         response: DownloadMediaResponse = self.client.drive.v1.media.download(request, option)
 
-        if not response.success():
-            self._log_error("drive.v1.media.download", response)
-            return None
-
         extension = ".png"
-        if hasattr(response, "file_name") and response.file_name:
-            if "." in response.file_name:
-                extension = f".{response.file_name.split('.')[-1]}"
+        if response.success():
+            if hasattr(response, "file_name") and response.file_name:
+                if "." in response.file_name:
+                    extension = f".{response.file_name.split('.')[-1]}"
 
-        file_path = self.temp_dir / f"{file_token}{extension}"
-        file_path.write_bytes(response.file.read())
-        return str(file_path)
+            file_path = self.temp_dir / f"{file_token}{extension}"
+            file_path.write_bytes(response.file.read())
+            return str(file_path)
+
+        # 策略2: 直接下载失败，尝试使用临时下载 URL
+        # 检查是否为权限错误（403/401/99991663等）
+        error_code = response.code if hasattr(response, "code") else None
+        permission_errors = {403, 401, 99991663, 99991400}  # 飞书常见权限错误码
+
+        if error_code in permission_errors:
+            console.print(f"[yellow]直接下载失败 (code: {error_code})，尝试使用临时下载 URL...[/yellow]")
+
+            tmp_url = self.get_file_download_url(file_token, access_token)
+            if tmp_url:
+                try:
+                    # 使用临时 URL 下载
+                    tmp_response = httpx.get(tmp_url, timeout=30.0)
+                    if tmp_response.status_code == 200:
+                        file_path = self.temp_dir / f"{file_token}{extension}"
+                        file_path.write_bytes(tmp_response.content)
+                        console.print(f"[green]✓ 使用临时 URL 下载成功[/green]")
+                        return str(file_path)
+                    else:
+                        console.print(f"[red]临时 URL 下载失败 (HTTP {tmp_response.status_code})[/red]")
+                except Exception as e:
+                    console.print(f"[red]临时 URL 下载异常: {e}[/red]")
+            else:
+                console.print(f"[red]获取临时下载 URL 失败[/red]")
+
+        # 记录最终失败
+        self._log_error("drive.v1.media.download", response)
+        return None
 
     def get_whiteboard(self, whiteboard_id: str, access_token: str) -> Optional[str]:
         """导出画板为图片"""
