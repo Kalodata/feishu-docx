@@ -23,3 +23,6 @@ Recent history uses short, imperative subjects with conventional prefixes like `
 
 ## Configuration & Auth Notes
 Authentication is handled via `feishu-docx config set` and `feishu-docx auth` (OAuth flow). Avoid committing tokens or generated output; keep samples in `docs/` or `tests/output/`.
+
+## Release Process
+Update CHANGELOG.md with changes since add or fix features. And Update readme if necessary.

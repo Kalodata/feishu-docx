@@ -110,6 +110,12 @@ feishu-docx export-wiki-space <space_id_or_url> -o ./wiki_backup --max-depth 5
 # 导出 APaaS 数据库结构
 feishu-docx export-workspace-schema <workspace_id> -o ./database_schema.md
 
+# 导出公众号文章为 Markdown
+feishu-docx export-wechat "https://mp.weixin.qq.com/s/xxxxxx"
+
+# 抓取公众号文章并创建飞书文档
+feishu-docx create --url "https://mp.weixin.qq.com/s/xxxxxx"
+
 # 使用 Token（临时）
 feishu-docx export "URL" -t your_access_token
 
@@ -207,7 +213,8 @@ feishu-docx export "https://xxx.feishu.cn/docx/xxx"
 | `export <URL>`                  | 导出单个文档为 Markdown        |
 | `export-wiki-space <space_id>`  | 批量导出知识空间（保持目录层级）        |
 | `export-workspace-schema <id>`  | 导出 APaaS 数据库结构         |
-| `create <title>`                | 创建飞书文档                  |
+| `export-wechat <URL>`           | 导出公众号文章为 Markdown       |
+| `create <title>`                | 创建飞书文档（支持 --url 导入公众号） |
 | `write <URL>`                   | 向文档追加 Markdown 内容      |
 | `update <URL>`                  | 更新文档中指定 Block          |
 | `auth`                          | OAuth 授权                |

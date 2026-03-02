@@ -11,6 +11,8 @@
 # 2026/01/28 18:00   Add workspace schema and wiki batch export commands
 # 2026/01/28 19:00   Fix wiki export: support old doc format, preserve hierarchy
 # 2026/02/01 19:20   Refactor - 拆分为多个命令模块
+# 2026/03/02 11:00   Add export-wechat command
+# 2026/03/02 11:20   Merge wechat import into create --url
 # =====================================================
 """
 [INPUT]: 依赖 typer, 各命令子模块
@@ -70,15 +72,16 @@ def main(
 # ==============================================================================
 # 注册命令 - 导出
 # ==============================================================================
-from .cmd_export import export, export_wiki_space
+from .cmd_export import export, export_wechat, export_wiki_space
 
 app.command()(export)
+app.command(name="export-wechat")(export_wechat)
 app.command(name="export-wiki-space")(export_wiki_space)
 
 # ==============================================================================
 # 注册命令 - 写入
 # ==============================================================================
-from .cmd_write import create, write, update
+from .cmd_write import create, update, write
 
 app.command()(create)
 app.command()(write)

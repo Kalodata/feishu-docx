@@ -114,6 +114,12 @@ feishu-docx export-wiki-space <space_id_or_url> -o ./wiki_backup --max-depth 5
 # Export APaaS database schema
 feishu-docx export-workspace-schema <workspace_id> -o ./database_schema.md
 
+# Export WeChat article to Markdown
+feishu-docx export-wechat "https://mp.weixin.qq.com/s/xxxxxx"
+
+# Fetch a WeChat article and create a Feishu doc
+feishu-docx create --url "https://mp.weixin.qq.com/s/xxxxxx"
+
 # Use token directly
 feishu-docx export "URL" -t your_access_token
 
@@ -211,7 +217,8 @@ feishu-docx export "https://xxx.feishu.cn/docx/xxx"
 | `export <URL>`                     | Export single document to Markdown      |
 | `export-wiki-space <space_id>`     | Batch export wiki space with hierarchy  |
 | `export-workspace-schema <id>`     | Export APaaS database schema            |
-| `create <title>`                   | Create new Feishu document              |
+| `export-wechat <URL>`              | Export WeChat article to Markdown       |
+| `create <title>`                   | Create new Feishu document (`--url` supported) |
 | `write <URL>`                      | Append Markdown content to document     |
 | `update <URL>`                     | Update specific block in document       |
 | `auth`                             | OAuth authorization                     |

@@ -5,6 +5,7 @@
 # @Date   ：2026/02/01 19:15
 # @Author ：leemysw
 # 2026/02/01 19:15   Create - 从 main.py 拆分
+# 2026/03/02 10:39   Add wechat import into create command
 # =====================================================
 """
 [INPUT]: 依赖 typer, feishu_docx.core.writer, feishu_docx.core.exporter
@@ -13,8 +14,10 @@
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 """
 
+import tempfile
 from pathlib import Path
 from typing import Optional
+from urllib.parse import urlparse
 
 import typer
 from rich.panel import Panel
@@ -28,7 +31,12 @@ from .common import console, get_credentials, normalize_folder_token
 
 
 def create(
-        title: str = typer.Argument(..., help="文档标题"),
+        title: Optional[str] = typer.Argument(None, help="文档标题（使用 --url 时可省略）"),
+        url: Optional[str] = typer.Option(
+            None,
+            "--url",
+            help="微信公众号文章 URL（传入后自动抓取并导入）",
+        ),
         content: Optional[str] = typer.Option(
             None,
             "-c",
@@ -67,14 +75,32 @@ def create(
         # 创建空白文档\\\\n
         feishu-docx create "我的笔记"
 
+        # 根据公众号 URL 创建文档\\\\n
+        feishu-docx create --url "https://mp.weixin.qq.com/s/xxxxx"
+
         # 创建文档并写入 Markdown 内容\\\\n
         feishu-docx create "会议记录" -c "# 会议纪要\\\\n\\\\n- 议题一\\\\n- 议题二"
 
         # 从 Markdown 文件创建文档\\\\n
         feishu-docx create "周报" -f ./weekly_report.md
     """
+    if not title and not url:
+        console.print("[red]❌ 必须提供文档标题或 --url[/red]")
+        raise typer.Exit(1)
+
+    if url and (content or file):
+        console.print("[red]❌ 使用 --url 时不能同时传入 --content 或 --file[/red]")
+        raise typer.Exit(1)
+
+    if url:
+        parsed = urlparse(url)
+        if parsed.scheme != "https" or parsed.netloc != "mp.weixin.qq.com":
+            console.print("[red]❌ 请输入有效的微信公众号文章 URL（https://mp.weixin.qq.com/...）[/red]")
+            raise typer.Exit(1)
+
     try:
         from feishu_docx.core.writer import FeishuWriter
+        from feishu_docx.core.wechat_importer import WeChatArticleImporter, WeChatImportError
         from feishu_docx import FeishuExporter
 
         # 获取凭证
@@ -91,9 +117,32 @@ def create(
 
         writer = FeishuWriter(sdk=exporter.sdk)
 
-        # 创建文档
+        if url:
+            with tempfile.TemporaryDirectory(prefix="feishu_docx_wechat_") as temp_dir:
+                importer = WeChatArticleImporter(workspace=Path(temp_dir))
+                article = importer.import_article(url)
+                md_path = importer.save_markdown(article)
+
+                doc = writer.create_document(
+                    title=title or article.title,
+                    file_path=md_path,
+                    folder_token=normalize_folder_token(folder),
+                    user_access_token=access_token,
+                )
+
+            console.print(Panel(
+                f"✅ 创建成功!\n\n"
+                f"[blue]文章标题:[/blue] {article.title}\n"
+                f"[blue]文档 ID:[/blue] {doc['document_id']}\n"
+                f"[blue]链接:[/blue] {doc['url']}\n"
+                f"[blue]下载图片:[/blue] {article.downloaded_images}",
+                border_style="green"
+            ))
+            return
+
+        # 创建普通文档
         doc = writer.create_document(
-            title=title,
+            title=title or "",
             content=content,
             file_path=file,
             folder_token=normalize_folder_token(folder),
@@ -107,6 +156,9 @@ def create(
             border_style="green"
         ))
 
+    except WeChatImportError as e:
+        console.print(f"[red]❌ 公众号导入失败: {e}[/red]")
+        raise typer.Exit(1)
     except Exception as e:
         console.print(f"[red]❌ 创建失败: {e}[/red]")
         raise typer.Exit(1)

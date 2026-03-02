@@ -5,10 +5,11 @@
 # @Date   ：2026/02/01 19:15
 # @Author ：leemysw
 # 2026/02/01 19:15   Create - 从 main.py 拆分
+# 2026/03/02 11:00   Add export-wechat command
 # =====================================================
 """
 [INPUT]: 依赖 typer, feishu_docx.core.exporter
-[OUTPUT]: 对外提供 export, export_wiki_space 命令
+[OUTPUT]: 对外提供 export, export_wechat, export_wiki_space 命令
 [POS]: cli 模块的导出命令
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 """
@@ -162,6 +163,64 @@ def export(
 
     except ValueError as e:
         console.print(f"[red]❌ 错误: {e}[/red]")
+        raise typer.Exit(1)
+    except Exception as e:
+        console.print(f"[red]❌ 导出失败: {e}[/red]")
+        raise typer.Exit(1)
+
+
+# ==============================================================================
+# export-wechat 命令
+# ==============================================================================
+
+
+def export_wechat(
+        url: str = typer.Argument(..., help="微信公众号文章 URL"),
+        output: Path = typer.Option(
+            Path("./output"),
+            "-o",
+            "--output",
+            help="输出目录",
+            file_okay=False,
+            dir_okay=True,
+        ),
+        filename: Optional[str] = typer.Option(
+            None,
+            "-n",
+            "--name",
+            help="输出文件名（不含扩展名）",
+        ),
+):
+    """
+    [green]▶[/] 导出微信公众号文章为 Markdown
+
+    示例:
+
+        # 导出到默认目录 ./output\\\\n
+        feishu-docx export-wechat \"https://mp.weixin.qq.com/s/xxxxx\"
+
+        # 导出到指定目录\\\\n
+        feishu-docx export-wechat \"https://mp.weixin.qq.com/s/xxxxx\" -o ./docs
+
+        # 指定输出文件名\\\\n
+        feishu-docx export-wechat \"https://mp.weixin.qq.com/s/xxxxx\" -n my_wechat_article
+    """
+    from feishu_docx.core.wechat_importer import WeChatArticleImporter, WeChatImportError
+
+    try:
+        importer = WeChatArticleImporter(workspace=output)
+        article = importer.import_article(url)
+        output_path = importer.save_markdown(article, filename=filename)
+
+        console.print(Panel(
+            f"✅ 导出完成!\n\n"
+            f"[blue]文章标题:[/blue] {article.title}\n"
+            f"[blue]输出文件:[/blue] {output_path}\n"
+            f"[blue]下载图片:[/blue] {article.downloaded_images}",
+            border_style="green",
+        ))
+    except WeChatImportError as e:
+        console.print(f"[red]❌ 公众号导出失败: {e}[/red]")
         raise typer.Exit(1)
     except Exception as e:
         console.print(f"[red]❌ 导出失败: {e}[/red]")

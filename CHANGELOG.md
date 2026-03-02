@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-03-02
+
+### Added
+- 新增 `create --url`：支持输入微信公众号文章 URL，自动抓取并创建飞书云文档
+- 新增 `export-wechat` CLI 命令：支持输入微信公众号文章 URL，导出为 Markdown 文件
+- 新增 `WeChatArticleImporter`：支持文章元数据提取、正文转 Markdown、图片下载与本地替换
+
 ## [0.2.0] - 2026-02-01
 
 ### 🚀 Major Refactoring
