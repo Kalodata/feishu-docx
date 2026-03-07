@@ -56,6 +56,7 @@ feishu-docx export "https://my.feishu.cn/wiki/KUIJwaBuGiwaSIkkKJ6cfVY8nSg"
 **让 Claude 直接访问你的飞书知识库！**
 
 本项目已包含 Claude Skills 配置，位于 `.skills/feishu-docx/SKILL.md`。
+Supports OpenCode, Claude Code, Codex, Cursor, and more.
 
 将此 Skill 复制到你的 Agent 项目中，Claude 就能：
 

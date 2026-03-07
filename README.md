@@ -58,6 +58,7 @@ feishu-docx export "https://my.feishu.cn/wiki/KUIJwaBuGiwaSIkkKJ6cfVY8nSg"
 **Enable Claude to access your Feishu knowledge base directly!**
 
 This project includes a Claude Skill at `.skills/feishu-docx/SKILL.md`.
+Supports OpenCode, Claude Code, Codex, Cursor, and more.
 
 Copy this Skill to your agent project, and Claude can:
 
