@@ -97,9 +97,11 @@ app.command(name="export-workspace-schema")(export_workspace_schema)
 # ==============================================================================
 # 注册命令 - 认证
 # ==============================================================================
-from .cmd_auth import auth
+from .cmd_auth import auth, auth_start, auth_check
 
 app.command()(auth)
+app.command(name="auth-start")(auth_start)
+app.command(name="auth-check")(auth_check)
 
 # ==============================================================================
 # 配置命令组

@@ -9,6 +9,31 @@ Export Feishu/Lark cloud documents to Markdown format for AI analysis.
 
 > **All commands require `--user-id <USER_ID>`** to specify which user's token to use.
 
+## Authentication
+
+When a command fails with a token error, use the **two-step auth flow** (Agent-friendly, non-blocking):
+
+```bash
+# Step 1: Start OAuth — returns JSON with URL and background server PID
+feishu-docx auth-start --user-id <USER_ID>
+# Output: {"url": "https://accounts.feishu.cn/...", "pid": 12345}
+
+# Step 2: Present the URL to the user and ask them to authorize in browser
+
+# Step 3: Check if authorization completed
+feishu-docx auth-check --user-id <USER_ID>
+# Output: {"authenticated": true}  or  {"authenticated": false}
+
+# Step 4: Clean up the background server
+kill <pid>
+```
+
+If `auth-start` returns `{"status": "authenticated"}`, a valid cached token already exists — no further action needed.
+
+**Alternative (interactive):** `feishu-docx auth --user-id <USER_ID>` runs the full OAuth flow in a single blocking command (opens browser, waits up to 2 minutes).
+
+The token caches to `~/.feishu-docx/tokens/<USER_ID>.json` and auto-refreshes. Re-auth is only needed if the refresh token expires.
+
 ## Export Documents
 
 ```bash
@@ -28,6 +53,8 @@ The exported Markdown file will be saved with the document's title as filename.
 
 | Command | Description |
 |---------|-------------|
+| `feishu-docx auth-start --user-id <USER_ID>` | Start OAuth (non-blocking, returns JSON) |
+| `feishu-docx auth-check --user-id <USER_ID>` | Check if OAuth token exists |
 | `feishu-docx export <URL> --user-id <USER_ID>` | Export document to Markdown |
 | `feishu-docx create <TITLE> --user-id <USER_ID>` | Create new document |
 | `feishu-docx write <URL> --user-id <USER_ID>` | Append content to document |

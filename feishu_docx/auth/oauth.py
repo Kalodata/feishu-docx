@@ -290,12 +290,26 @@ class OAuth2Authenticator:
         return self.authenticate()
 
     # ==========================================================================
+    # 公共方法
+    # ==========================================================================
+    def build_auth_url(self, state: str) -> str:
+        """构建 OAuth 授权 URL"""
+        auth_params = {
+            "client_id": self.app_id,
+            "response_type": "code",
+            "redirect_uri": self.redirect_uri,
+            "scope": " ".join(self.scopes),
+            "state": state,
+        }
+        return f"{self.auth_url}?{urlencode(auth_params)}"
+
+    # ==========================================================================
     # 私有方法
     # ==========================================================================
     def _oauth_flow(self) -> str:
         """
         执行完整的 OAuth 授权流程
-        
+
         1. 启动本地 HTTP 服务器监听回调
         2. 构建授权 URL 并打开浏览器
         3. 用户授权后接收 code
@@ -312,17 +326,8 @@ class OAuth2Authenticator:
         if self._bind_host == "0.0.0.0":
             console.print(f"[yellow]⚠ 回调服务器监听 0.0.0.0:{self.redirect_port}，请确保该端口可从公网访问[/yellow]")
 
-        # 2. 构建授权 URL (遵循飞书文档)
-        # https://accounts.feishu.cn/open-apis/authen/v1/authorize?
-        #   client_id=xxx&response_type=code&redirect_uri=xxx&scope=xxx&state=xxx
-        auth_params = {
-            "client_id": self.app_id,
-            "response_type": "code",
-            "redirect_uri": self.redirect_uri,
-            "scope": " ".join(self.scopes),
-            "state": state,
-        }
-        auth_url = f"{self.auth_url}?{urlencode(auth_params)}"
+        # 2. 构建授权 URL
+        auth_url = self.build_auth_url(state)
 
         console.print(f"\n[bold blue]📋 授权链接:[/bold blue]\n{auth_url}\n")
         console.print("[yellow]正在打开浏览器进行授权...[/yellow]")

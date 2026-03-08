@@ -11,7 +11,7 @@ cli/
 ├── cmd_export.py    # 导出命令 - export, export-wechat, export_wiki_space
 ├── cmd_write.py     # 写入命令 - create, write, update
 ├── cmd_apaas.py     # APaaS 命令 - export_workspace_schema
-├── cmd_auth.py      # 认证命令 - auth, tui
+├── cmd_auth.py      # 认证命令 - auth, auth-start, auth-check
 └── cmd_config.py    # 配置命令 - config set/show/clear
 ```
 
@@ -26,8 +26,10 @@ cli/
 | `write` | cmd_write | 向文档追加内容 |
 | `update` | cmd_write | 更新指定 Block |
 | `export-workspace-schema` | cmd_apaas | 导出 APaaS 数据库结构 |
-| `auth` | cmd_auth | OAuth 授权 |
-| `tui` | cmd_auth | TUI 交互界面 |
+| `auth` | cmd_auth | OAuth 授权（阻塞式） |
+| `auth-start` | cmd_auth | 启动 OAuth（非阻塞，返回 JSON） |
+| `auth-check` | cmd_auth | 检查 token 状态（返回 JSON） |
+| `tui` | cmd_tui | TUI 交互界面 |
 | `config set/show/clear` | cmd_config | 配置管理 |
 
 ## 凭证优先级

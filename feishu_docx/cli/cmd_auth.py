@@ -5,14 +5,20 @@
 # @Date   ：2026/02/01 19:15
 # @Author ：leemysw
 # 2026/02/01 19:15   Create - 从 main.py 拆分
+# 2026/03/08 12:00   Add auth-start, auth-check for Agent two-step flow
 # =====================================================
 """
 [INPUT]: 依赖 typer, feishu_docx.auth.oauth
-[OUTPUT]: 对外提供 auth 命令
-[POS]: cli 模块的认证 命令
+[OUTPUT]: 对外提供 auth, auth_start, auth_check 命令
+[POS]: cli 模块的认证命令
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 """
 
+import json
+import os
+import secrets
+import subprocess
+import sys
 from typing import Optional
 
 import typer
@@ -107,4 +113,131 @@ def auth(
 
     except Exception as e:
         console.print(f"[red]❌ 授权失败: {e}[/red]")
+        raise typer.Exit(1)
+
+
+# ==============================================================================
+# auth-start 命令（Agent 友好：非阻塞，返回 JSON）
+# ==============================================================================
+
+
+def auth_start(
+        lark: bool = typer.Option(
+            False,
+            "--lark",
+            help="使用 Lark (海外版)",
+        ),
+        redirect_uri: Optional[str] = typer.Option(
+            None,
+            "--redirect-uri",
+            help="自定义 OAuth 回调地址（覆盖配置文件）",
+        ),
+        user_id: Optional[str] = typer.Option(
+            None,
+            "--user-id",
+            help="用户标识，token 按用户隔离存储",
+        ),
+):
+    """
+    [yellow]❁[/] 启动 OAuth 授权（Agent 模式）
+
+    非阻塞式授权，返回 JSON 包含授权 URL 和后台进程 PID：
+
+        feishu-docx auth-start --user-id xxx
+
+    输出: {"url": "https://...", "pid": 12345}
+
+    配合 auth-check 使用，适合 AI Agent 调用。
+    """
+    try:
+        # 获取凭证
+        final_app_id, final_app_secret, _, final_redirect_uri, final_user_id = get_credentials(
+            None, None, None, redirect_uri, user_id,
+        )
+
+        if not final_app_id or not final_app_secret:
+            print(json.dumps({"error": "credentials_missing"}))
+            raise typer.Exit(1)
+
+        # 先检查缓存 token
+        authenticator = OAuth2Authenticator(
+            app_id=final_app_id,
+            app_secret=final_app_secret,
+            is_lark=lark,
+            redirect_uri=final_redirect_uri,
+            user_id=final_user_id,
+        )
+        if authenticator._load_from_cache() and not authenticator._token_info.is_expired():
+            print(json.dumps({"status": "authenticated"}))
+            return
+
+        # 生成 state，构建 auth URL
+        state = secrets.token_urlsafe(16)
+        auth_url = authenticator.build_auth_url(state)
+
+        # 通过环境变量传递凭证，启动后台回调服务器
+        env = os.environ.copy()
+        env["FEISHU_APP_ID"] = final_app_id
+        env["FEISHU_APP_SECRET"] = final_app_secret
+        if final_redirect_uri:
+            env["FEISHU_REDIRECT_URI"] = final_redirect_uri
+        if final_user_id:
+            env["FEISHU_USER_ID"] = final_user_id
+
+        cmd = [
+            sys.executable, "-m", "feishu_docx.auth.server",
+            "--state", state,
+            "--port", str(authenticator.redirect_port),
+        ]
+        if lark:
+            cmd.append("--lark")
+
+        proc = subprocess.Popen(
+            cmd,
+            env=env,
+            start_new_session=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+        print(json.dumps({"url": auth_url, "pid": proc.pid}))
+
+    except typer.Exit:
+        raise
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+        raise typer.Exit(1)
+
+
+# ==============================================================================
+# auth-check 命令（Agent 友好：检查 token 状态）
+# ==============================================================================
+
+
+def auth_check(
+        user_id: Optional[str] = typer.Option(
+            None,
+            "--user-id",
+            help="用户标识，token 按用户隔离存储",
+        ),
+):
+    """
+    [yellow]❁[/] 检查 OAuth 授权状态（Agent 模式）
+
+    检查 token 是否已获取：
+
+        feishu-docx auth-check --user-id xxx
+
+    输出: {"authenticated": true} 或 {"authenticated": false}
+    """
+    try:
+        _, _, _, _, final_user_id = get_credentials(None, None, None, None, user_id)
+
+        authenticator = OAuth2Authenticator(user_id=final_user_id)
+        authenticated = authenticator._load_from_cache() and not authenticator._token_info.is_expired()
+
+        print(json.dumps({"authenticated": authenticated}))
+
+    except Exception as e:
+        print(json.dumps({"authenticated": False, "error": str(e)}))
         raise typer.Exit(1)
