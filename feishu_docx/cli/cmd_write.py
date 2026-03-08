@@ -22,7 +22,7 @@ from urllib.parse import urlparse
 import typer
 from rich.panel import Panel
 
-from .common import console, get_credentials, normalize_folder_token
+from .common import console, get_credentials, normalize_folder_token, require_auth
 
 
 # ==============================================================================
@@ -110,6 +110,7 @@ def create(
             access_token = token
         else:
             final_app_id, final_app_secret, final_auth_mode, final_redirect_uri, final_user_id = get_credentials(app_id, app_secret, auth_mode, user_id=user_id)
+            require_auth(final_user_id, is_lark=lark, redirect_uri=final_redirect_uri)
             if not final_app_id or not final_app_secret:
                 console.print("[red]❌ 需要提供凭证，请运行 feishu-docx config set[/red]")
                 raise typer.Exit(1)
@@ -223,6 +224,7 @@ def write(
             access_token = token
         else:
             final_app_id, final_app_secret, final_auth_mode, final_redirect_uri, final_user_id = get_credentials(app_id, app_secret, auth_mode, user_id=user_id)
+            require_auth(final_user_id, is_lark=lark, redirect_uri=final_redirect_uri)
             if not final_app_id or not final_app_secret:
                 console.print("[red]❌ 需要提供凭证[/red]")
                 raise typer.Exit(1)
@@ -295,6 +297,7 @@ def update(
             access_token = token
         else:
             final_app_id, final_app_secret, final_auth_mode, final_redirect_uri, final_user_id = get_credentials(app_id, app_secret, auth_mode, user_id=user_id)
+            require_auth(final_user_id, is_lark=lark, redirect_uri=final_redirect_uri)
             if not final_app_id or not final_app_secret:
                 console.print("[red]❌ 需要提供凭证[/red]")
                 raise typer.Exit(1)

@@ -12,6 +12,7 @@ cli/
 ├── cmd_write.py     # 写入命令 - create, write, update
 ├── cmd_apaas.py     # APaaS 命令 - export_workspace_schema
 ├── cmd_auth.py      # 认证命令 - auth, auth-start, auth-check
+├── cmd_server.py    # 服务器命令 - server start/stop/status
 └── cmd_config.py    # 配置命令 - config set/show/clear
 ```
 
@@ -29,6 +30,7 @@ cli/
 | `auth` | cmd_auth | OAuth 授权（阻塞式） |
 | `auth-start` | cmd_auth | 启动 OAuth（非阻塞，返回 JSON） |
 | `auth-check` | cmd_auth | 检查 token 状态（返回 JSON） |
+| `server start/stop/status` | cmd_server | OAuth 回调服务器管理 |
 | `tui` | cmd_tui | TUI 交互界面 |
 | `config set/show/clear` | cmd_config | 配置管理 |
 

@@ -104,6 +104,18 @@ app.command(name="auth-start")(auth_start)
 app.command(name="auth-check")(auth_check)
 
 # ==============================================================================
+# 服务器命令组
+# ==============================================================================
+from .cmd_server import server_start, server_stop, server_status
+
+server_app = typer.Typer(help="[dim]❄[/] OAuth 回调服务器管理", rich_markup_mode="rich")
+app.add_typer(server_app, name="server")
+
+server_app.command("start")(server_start)
+server_app.command("stop")(server_stop)
+server_app.command("status")(server_status)
+
+# ==============================================================================
 # 配置命令组
 # ==============================================================================
 from .cmd_config import config_set, config_show, config_clear

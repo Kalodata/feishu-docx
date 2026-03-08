@@ -23,23 +23,37 @@ feishu-docx auth-check --user-id <USER_ID>
 If not authenticated, run the **two-step auth flow** (Agent-friendly, non-blocking):
 
 ```bash
-# Step 2: Start OAuth — returns JSON with URL and background server PID
+# Step 2: Start OAuth — auto-starts server if needed, returns JSON
 feishu-docx auth-start --user-id <USER_ID>
-# Output: {"url": "https://accounts.feishu.cn/...", "pid": 12345}
+# Output: {"url": "https://accounts.feishu.cn/...", "server_pid": 12345}
 
 # Step 3: Present the URL to the user and ask them to authorize in browser
 
 # Step 4: Poll until authorization completes
 feishu-docx auth-check --user-id <USER_ID>
 # Output: {"authenticated": true}  → proceed to your command
-
-# Step 5: Clean up the background server
-kill <pid>
 ```
+
+The callback server runs persistently and handles multiple auth requests. No need to kill it after each auth — it stays running for future use.
 
 **Alternative (interactive):** `feishu-docx auth --user-id <USER_ID>` runs the full OAuth flow in a single blocking command (opens browser, waits up to 2 minutes).
 
 The token caches to `~/.feishu-docx/tokens/<USER_ID>.json` and auto-refreshes. Re-auth is only needed if the refresh token expires.
+
+## Server Management
+
+The OAuth callback server can be managed independently:
+
+```bash
+# Start the callback server (usually auto-started by auth-start)
+feishu-docx server start
+
+# Check server status
+feishu-docx server status
+
+# Stop the server
+feishu-docx server stop
+```
 
 ## Export Documents
 
@@ -62,6 +76,9 @@ The exported Markdown file will be saved with the document's title as filename.
 |---------|-------------|
 | `feishu-docx auth-start --user-id <USER_ID>` | Start OAuth (non-blocking, returns JSON) |
 | `feishu-docx auth-check --user-id <USER_ID>` | Check if OAuth token exists |
+| `feishu-docx server start` | Start persistent OAuth callback server |
+| `feishu-docx server stop` | Stop OAuth callback server |
+| `feishu-docx server status` | Check server running status |
 | `feishu-docx export <URL> --user-id <USER_ID>` | Export document to Markdown |
 | `feishu-docx create <TITLE> --user-id <USER_ID>` | Create new document |
 | `feishu-docx write <URL> --user-id <USER_ID>` | Append content to document |

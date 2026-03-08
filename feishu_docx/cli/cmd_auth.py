@@ -7,27 +7,25 @@
 # 2026/02/01 19:15   Create - 从 main.py 拆分
 # 2026/03/08 12:00   Add auth-start, auth-check for Agent two-step flow
 # 2026/03/08         auth-start: add logging + server binds 0.0.0.0
+# 2026/03/08         auth-start: use persistent server + pending state files
 # =====================================================
 """
-[INPUT]: 依赖 typer, feishu_docx.auth.oauth
+[INPUT]: 依赖 typer, feishu_docx.auth.oauth, feishu_docx.auth.server
 [OUTPUT]: 对外提供 auth, auth_start, auth_check 命令
 [POS]: cli 模块的认证命令
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 """
 
 import json
-import os
 import secrets
-import subprocess
 import sys
-import time
-from pathlib import Path
 from typing import Optional
 
 import typer
 from rich.panel import Panel
 
 from feishu_docx.auth.oauth import OAuth2Authenticator
+from feishu_docx.auth.server import PENDING_DIR, is_server_running
 from .common import console, get_credentials
 
 
@@ -144,12 +142,13 @@ def auth_start(
     """
     [yellow]❁[/] 启动 OAuth 授权（Agent 模式）
 
-    非阻塞式授权，返回 JSON 包含授权 URL 和后台进程 PID：
+    非阻塞式授权，返回 JSON 包含授权 URL 和服务器 PID：
 
         feishu-docx auth-start --user-id xxx
 
-    输出: {"url": "https://...", "pid": 12345}
+    输出: {"url": "https://...", "server_pid": 12345}
 
+    回调服务器持久运行，可通过 `feishu-docx server stop` 停止。
     配合 auth-check 使用，适合 AI Agent 调用。
     """
     try:
@@ -177,53 +176,38 @@ def auth_start(
             print(json.dumps({"status": "authenticated"}), flush=True)
             return
 
-        # 生成 state，构建 auth URL
+        # 检查服务器是否在跑，没跑则自动启动
+        running, server_info = is_server_running()
+        if running:
+            server_pid = server_info["pid"]
+            print(f"[auth-start] Server already running, pid={server_pid}", file=sys.stderr, flush=True)
+        else:
+            print("[auth-start] Server not running, starting...", file=sys.stderr, flush=True)
+            from .cmd_server import server_start as _start_server
+            _start_server(port=authenticator.redirect_port, host="0.0.0.0", foreground=False)
+            running, server_info = is_server_running()
+            if not running:
+                print("[auth-start] Failed to start server", file=sys.stderr, flush=True)
+                print(json.dumps({"error": "server_start_failed"}), flush=True)
+                raise typer.Exit(1)
+            server_pid = server_info["pid"]
+            print(f"[auth-start] Server started, pid={server_pid}", file=sys.stderr, flush=True)
+
+        # 生成 state，写 pending 文件
         state = secrets.token_urlsafe(16)
         auth_url = authenticator.build_auth_url(state)
         print(f"[auth-start] Auth URL generated, state={state[:8]}...", file=sys.stderr, flush=True)
 
-        # 日志文件
-        log_dir = Path.home() / ".feishu-docx"
-        log_dir.mkdir(parents=True, exist_ok=True)
-        log_file = log_dir / "auth-server.log"
+        PENDING_DIR.mkdir(parents=True, exist_ok=True)
+        pending_file = PENDING_DIR / f"{state}.json"
+        pending_file.write_text(json.dumps({
+            "user_id": final_user_id,
+            "is_lark": lark,
+        }))
+        print(f"[auth-start] Pending state registered", file=sys.stderr, flush=True)
 
-        # 通过环境变量传递凭证，启动后台回调服务器
-        env = os.environ.copy()
-        env["FEISHU_APP_ID"] = final_app_id
-        env["FEISHU_APP_SECRET"] = final_app_secret
-        if final_redirect_uri:
-            env["FEISHU_REDIRECT_URI"] = final_redirect_uri
-        if final_user_id:
-            env["FEISHU_USER_ID"] = final_user_id
-
-        cmd = [
-            sys.executable, "-m", "feishu_docx.auth.server",
-            "--state", state,
-            "--port", str(authenticator.redirect_port),
-            "--host", "0.0.0.0",
-        ]
-        if lark:
-            cmd.append("--lark")
-
-        log_fh = open(log_file, "w")
-        proc = subprocess.Popen(
-            cmd,
-            env=env,
-            start_new_session=True,
-            stdout=subprocess.DEVNULL,
-            stderr=log_fh,
-        )
-        print(f"[auth-start] Server process started, pid={proc.pid}", file=sys.stderr, flush=True)
-
-        time.sleep(0.5)
-        if proc.poll() is not None:
-            log_fh.close()
-            log_content = log_file.read_text(encoding="utf-8").strip()
-            print(f"[auth-start] Server exited immediately: {log_content}", file=sys.stderr, flush=True)
-            print(json.dumps({"error": "server_failed", "log": log_content}), flush=True)
-            raise typer.Exit(1)
-
-        print(json.dumps({"url": auth_url, "pid": proc.pid, "log": str(log_file)}), flush=True)
+        # 输出结果
+        print(json.dumps({"url": auth_url, "server_pid": server_pid}), flush=True)
 
     except typer.Exit:
         raise

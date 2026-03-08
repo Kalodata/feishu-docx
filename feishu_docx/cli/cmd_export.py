@@ -21,7 +21,7 @@ import typer
 from rich.panel import Panel
 
 from feishu_docx.core.exporter import FeishuExporter
-from .common import console, get_credentials
+from .common import console, get_credentials, require_auth
 
 # ==============================================================================
 # export 命令
@@ -130,6 +130,7 @@ def export(
         else:
             # 获取凭证（命令行参数 > 环境变量 > 配置文件）
             final_app_id, final_app_secret, final_auth_mode, final_redirect_uri, final_user_id = get_credentials(app_id, app_secret, auth_mode, user_id=user_id)
+            require_auth(final_user_id, is_lark=lark, redirect_uri=final_redirect_uri)
 
             if final_app_id and final_app_secret:
                 exporter = FeishuExporter(app_id=final_app_id, app_secret=final_app_secret, is_lark=lark, auth_mode=final_auth_mode, redirect_uri=final_redirect_uri, user_id=final_user_id)
@@ -294,6 +295,7 @@ def export_wiki_space(
             access_token = token
         else:
             final_app_id, final_app_secret, final_auth_mode, final_redirect_uri, final_user_id = get_credentials(app_id, app_secret, auth_mode, user_id=user_id)
+            require_auth(final_user_id, is_lark=lark, redirect_uri=final_redirect_uri)
             if not final_app_id or not final_app_secret:
                 console.print("[red]❌ 需要提供凭证[/red]")
                 raise typer.Exit(1)

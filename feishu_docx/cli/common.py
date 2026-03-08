@@ -5,10 +5,11 @@
 # @Date   ：2026/02/01 19:15
 # @Author ：leemysw
 # 2026/02/01 19:15   Create - 从 main.py 拆分
+# 2026/03/09         Add require_auth helper
 # =====================================================
 """
 [INPUT]: 依赖 typer, feishu_docx.utils.config, feishu_docx.utils.console
-[OUTPUT]: 对外提供 get_credentials, normalize_folder_token, console
+[OUTPUT]: 对外提供 get_credentials, normalize_folder_token, require_auth, console
 [POS]: cli 模块的共享工具函数
 [PROTOCOL]: 变更时更新此头部，然后检查 CLAUDE.md
 """
@@ -101,6 +102,40 @@ def get_credentials(
         return final_app_id, final_app_secret, final_auth_mode, final_redirect_uri, final_user_id
 
     return None, None, final_auth_mode, final_redirect_uri, final_user_id
+
+
+def require_auth(
+        user_id: Optional[str],
+        is_lark: bool = False,
+        redirect_uri: Optional[str] = None,
+):
+    """
+    检查用户 OAuth token 是否有效，无效则报错并生成 auth-start 命令。
+
+    仅当 user_id 非空时检查（user_id 模式 = Agent 模式）。
+    """
+    if not user_id:
+        return
+
+    from feishu_docx.auth.oauth import OAuth2Authenticator
+    authenticator = OAuth2Authenticator(user_id=user_id, redirect_uri=redirect_uri)
+    if authenticator._load_from_cache() and not authenticator._token_info.is_expired():
+        return
+
+    # 构建 auth-start 命令
+    cmd = f"feishu-docx auth-start --user-id {user_id}"
+    if is_lark:
+        cmd += " --lark"
+    if redirect_uri:
+        cmd += f" --redirect-uri {redirect_uri}"
+
+    console.print(
+        f"[red]❌ 用户 [bold]{user_id}[/bold] 未授权或 token 已过期[/red]\n\n"
+        f"请先运行授权命令：\n"
+        f"  [cyan]{cmd}[/cyan]"
+    )
+    import typer
+    raise typer.Exit(1)
 
 
 def normalize_folder_token(folder: Optional[str]) -> Optional[str]:
