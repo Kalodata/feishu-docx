@@ -465,5 +465,5 @@ class OAuth2Authenticator:
         if not self._token_info:
             return
 
-        self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.cache_file.parent.mkdir(parents=True, exist_ok=True)
         self.cache_file.write_text(json.dumps(self._token_info.to_dict(), indent=2))
