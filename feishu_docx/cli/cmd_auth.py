@@ -6,6 +6,7 @@
 # @Author ：leemysw
 # 2026/02/01 19:15   Create - 从 main.py 拆分
 # 2026/03/08 12:00   Add auth-start, auth-check for Agent two-step flow
+# 2026/03/08         auth-start: add logging + server binds 0.0.0.0
 # =====================================================
 """
 [INPUT]: 依赖 typer, feishu_docx.auth.oauth
@@ -19,6 +20,7 @@ import os
 import secrets
 import subprocess
 import sys
+from pathlib import Path
 from typing import Optional
 
 import typer
@@ -151,11 +153,13 @@ def auth_start(
     """
     try:
         # 获取凭证
+        print("[auth-start] Checking credentials...", file=sys.stderr, flush=True)
         final_app_id, final_app_secret, _, final_redirect_uri, final_user_id = get_credentials(
             None, None, None, redirect_uri, user_id,
         )
 
         if not final_app_id or not final_app_secret:
+            print("[auth-start] Credentials missing", file=sys.stderr, flush=True)
             print(json.dumps({"error": "credentials_missing"}))
             raise typer.Exit(1)
 
@@ -168,12 +172,19 @@ def auth_start(
             user_id=final_user_id,
         )
         if authenticator._load_from_cache() and not authenticator._token_info.is_expired():
+            print("[auth-start] Cached token still valid", file=sys.stderr, flush=True)
             print(json.dumps({"status": "authenticated"}))
             return
 
         # 生成 state，构建 auth URL
         state = secrets.token_urlsafe(16)
         auth_url = authenticator.build_auth_url(state)
+        print(f"[auth-start] Auth URL generated, state={state[:8]}...", file=sys.stderr, flush=True)
+
+        # 日志文件
+        log_dir = Path.home() / ".feishu-docx"
+        log_dir.mkdir(parents=True, exist_ok=True)
+        log_file = log_dir / "auth-server.log"
 
         # 通过环境变量传递凭证，启动后台回调服务器
         env = os.environ.copy()
@@ -188,19 +199,22 @@ def auth_start(
             sys.executable, "-m", "feishu_docx.auth.server",
             "--state", state,
             "--port", str(authenticator.redirect_port),
+            "--host", "0.0.0.0",
         ]
         if lark:
             cmd.append("--lark")
 
+        log_fh = open(log_file, "w")
         proc = subprocess.Popen(
             cmd,
             env=env,
             start_new_session=True,
             stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
+            stderr=log_fh,
         )
+        print(f"[auth-start] Server process started, pid={proc.pid}", file=sys.stderr, flush=True)
 
-        print(json.dumps({"url": auth_url, "pid": proc.pid}))
+        print(json.dumps({"url": auth_url, "pid": proc.pid, "log": str(log_file)}))
 
     except typer.Exit:
         raise

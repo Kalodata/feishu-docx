@@ -89,8 +89,9 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
     }
 
     def log_message(self, format, *args):
-        """禁用默认日志输出"""
-        pass
+        """输出请求日志到 stderr"""
+        import sys
+        print(f"[auth-server] {format % args}", file=sys.stderr, flush=True)
 
     def do_GET(self):
         """处理 GET 请求（OAuth 回调）"""
