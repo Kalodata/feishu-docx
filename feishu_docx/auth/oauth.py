@@ -130,8 +130,8 @@ class OAuthCallbackHandler(BaseHTTPRequestHandler):
 class OAuthCallbackServer(HTTPServer):
     """OAuth 回调服务器"""
 
-    def __init__(self, port: int = 9527):
-        super().__init__(("127.0.0.1", port), OAuthCallbackHandler)  # noqa
+    def __init__(self, port: int = 9527, host: str = "127.0.0.1"):
+        super().__init__((host, port), OAuthCallbackHandler)  # noqa
         self.auth_code: Optional[str] = None
         self.auth_state: Optional[str] = None
         self.auth_error: Optional[str] = None
@@ -189,6 +189,8 @@ class OAuth2Authenticator:
             cache_dir: Optional[Path] = None,
             scopes: Optional[List[str]] = None,
             is_lark: bool = False,
+            redirect_uri: Optional[str] = None,
+            user_id: Optional[str] = None,
     ):
         """
         初始化认证器
@@ -196,17 +198,29 @@ class OAuth2Authenticator:
         Args:
             app_id: 飞书应用 App ID (client_id)
             app_secret: 飞书应用 App Secret (client_secret)
-            redirect_port: 本地回调服务器端口
+            redirect_port: 本地回调服务器端口（redirect_uri 未设置时使用）
             cache_dir: Token 缓存目录
             scopes: 需要请求的权限列表，默认使用云文档导出所需权限
             is_lark: 是否使用 Lark (海外版)
+            redirect_uri: 自定义 OAuth 回调地址（服务器部署时使用）
+            user_id: 用户标识，非空时 token 存储到 tokens/{user_id}.json
         """
         self.app_id = app_id
         self.app_secret = app_secret
-        self.redirect_port = redirect_port
-        self.redirect_uri = f"http://127.0.0.1:{redirect_port}/"
         self.scopes = scopes or DEFAULT_SCOPES
         self.is_lark = is_lark
+
+        # 确定 redirect_uri 和回调服务器绑定地址
+        if redirect_uri:
+            self.redirect_uri = redirect_uri
+            parsed = urlparse(redirect_uri)
+            self.redirect_port = parsed.port or 9527
+            host = parsed.hostname or "127.0.0.1"
+            self._bind_host = "127.0.0.1" if host in ("127.0.0.1", "localhost") else "0.0.0.0"
+        else:
+            self.redirect_port = redirect_port
+            self.redirect_uri = f"http://127.0.0.1:{redirect_port}/"
+            self._bind_host = "127.0.0.1"
 
         # 选择 API 端点
         if is_lark:
@@ -218,7 +232,10 @@ class OAuth2Authenticator:
 
         # Token 缓存
         self.cache_dir = cache_dir or Path.home() / ".feishu-docx"
-        self.cache_file = self.cache_dir / "token.json"
+        if user_id:
+            self.cache_file = self.cache_dir / "tokens" / f"{user_id}.json"
+        else:
+            self.cache_file = self.cache_dir / "token.json"
         self._token_info: Optional[TokenInfo] = None
 
         # HTTP 客户端
@@ -287,10 +304,13 @@ class OAuth2Authenticator:
         import secrets
         state = secrets.token_urlsafe(16)
 
-        # 1. 启动本地回调服务器
-        server = OAuthCallbackServer(self.redirect_port)
+        # 1. 启动回调服务器
+        server = OAuthCallbackServer(self.redirect_port, host=self._bind_host)
         server_thread = Thread(target=server.handle_request, daemon=True)
         server_thread.start()
+
+        if self._bind_host == "0.0.0.0":
+            console.print(f"[yellow]⚠ 回调服务器监听 0.0.0.0:{self.redirect_port}，请确保该端口可从公网访问[/yellow]")
 
         # 2. 构建授权 URL (遵循飞书文档)
         # https://accounts.feishu.cn/open-apis/authen/v1/authorize?

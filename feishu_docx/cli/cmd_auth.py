@@ -48,6 +48,16 @@ def auth(
             "--lark",
             help="使用 Lark (海外版)",
         ),
+        redirect_uri: Optional[str] = typer.Option(
+            None,
+            "--redirect-uri",
+            help="自定义 OAuth 回调地址（覆盖配置文件）",
+        ),
+        user_id: Optional[str] = typer.Option(
+            None,
+            "--user-id",
+            help="用户标识，token 按用户隔离存储",
+        ),
 ):
     """
     [yellow]❁[/] 获取授权，获取并缓存 Token
@@ -64,7 +74,7 @@ def auth(
     """
     try:
         # 获取凭证
-        final_app_id, final_app_secret, final_auth_mode = get_credentials(app_id, app_secret, auth_mode)
+        final_app_id, final_app_secret, final_auth_mode, final_redirect_uri, final_user_id = get_credentials(app_id, app_secret, auth_mode, redirect_uri, user_id)
 
         if not final_app_id or not final_app_secret:
             console.print(
@@ -80,6 +90,8 @@ def auth(
             app_id=final_app_id,
             app_secret=final_app_secret,
             is_lark=lark,
+            redirect_uri=final_redirect_uri,
+            user_id=final_user_id,
         )
 
         console.print("[yellow]>[/yellow] 正在进行 OAuth 授权...")

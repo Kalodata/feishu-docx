@@ -66,6 +66,7 @@ def create(
         app_secret: Optional[str] = typer.Option(None, "--app-secret", help="飞书应用 App Secret"),
         auth_mode: Optional[str] = typer.Option(None, "--auth-mode", help="认证模式: tenant / oauth"),
         lark: bool = typer.Option(False, "--lark", help="使用 Lark (海外版)"),
+        user_id: Optional[str] = typer.Option(None, "--user-id", help="用户标识，使用指定用户的 OAuth token"),
 ):
     """
     [green]▶[/] 创建飞书文档
@@ -108,11 +109,11 @@ def create(
             exporter = FeishuExporter.from_token(token)
             access_token = token
         else:
-            final_app_id, final_app_secret, final_auth_mode = get_credentials(app_id, app_secret, auth_mode)
+            final_app_id, final_app_secret, final_auth_mode, final_redirect_uri, final_user_id = get_credentials(app_id, app_secret, auth_mode, user_id=user_id)
             if not final_app_id or not final_app_secret:
                 console.print("[red]❌ 需要提供凭证，请运行 feishu-docx config set[/red]")
                 raise typer.Exit(1)
-            exporter = FeishuExporter(app_id=final_app_id, app_secret=final_app_secret, is_lark=lark, auth_mode=final_auth_mode)
+            exporter = FeishuExporter(app_id=final_app_id, app_secret=final_app_secret, is_lark=lark, auth_mode=final_auth_mode, redirect_uri=final_redirect_uri, user_id=final_user_id)
             access_token = exporter.get_access_token()
 
         writer = FeishuWriter(sdk=exporter.sdk)
@@ -195,6 +196,7 @@ def write(
         app_secret: Optional[str] = typer.Option(None, "--app-secret", help="飞书应用 App Secret"),
         auth_mode: Optional[str] = typer.Option(None, "--auth-mode", help="认证模式: tenant / oauth"),
         lark: bool = typer.Option(False, "--lark", help="使用 Lark (海外版)"),
+        user_id: Optional[str] = typer.Option(None, "--user-id", help="用户标识，使用指定用户的 OAuth token"),
 ):
     """
     [green]▶[/] 向飞书文档追加 Markdown 内容
@@ -220,11 +222,11 @@ def write(
             exporter = FeishuExporter.from_token(token)
             access_token = token
         else:
-            final_app_id, final_app_secret, final_auth_mode = get_credentials(app_id, app_secret, auth_mode)
+            final_app_id, final_app_secret, final_auth_mode, final_redirect_uri, final_user_id = get_credentials(app_id, app_secret, auth_mode, user_id=user_id)
             if not final_app_id or not final_app_secret:
                 console.print("[red]❌ 需要提供凭证[/red]")
                 raise typer.Exit(1)
-            exporter = FeishuExporter(app_id=final_app_id, app_secret=final_app_secret, is_lark=lark, auth_mode=final_auth_mode)
+            exporter = FeishuExporter(app_id=final_app_id, app_secret=final_app_secret, is_lark=lark, auth_mode=final_auth_mode, redirect_uri=final_redirect_uri, user_id=final_user_id)
             access_token = exporter.get_access_token()
 
         # 解析 URL 获取 document_id
@@ -270,6 +272,7 @@ def update(
         app_secret: Optional[str] = typer.Option(None, "--app-secret", help="飞书应用 App Secret"),
         auth_mode: Optional[str] = typer.Option(None, "--auth-mode", help="认证模式: tenant / oauth"),
         lark: bool = typer.Option(False, "--lark", help="使用 Lark (海外版)"),
+        user_id: Optional[str] = typer.Option(None, "--user-id", help="用户标识，使用指定用户的 OAuth token"),
 ):
     """
     [green]▶[/] 更新飞书文档中指定 Block 的内容
@@ -291,11 +294,11 @@ def update(
             exporter = FeishuExporter.from_token(token)
             access_token = token
         else:
-            final_app_id, final_app_secret, final_auth_mode = get_credentials(app_id, app_secret, auth_mode)
+            final_app_id, final_app_secret, final_auth_mode, final_redirect_uri, final_user_id = get_credentials(app_id, app_secret, auth_mode, user_id=user_id)
             if not final_app_id or not final_app_secret:
                 console.print("[red]❌ 需要提供凭证[/red]")
                 raise typer.Exit(1)
-            exporter = FeishuExporter(app_id=final_app_id, app_secret=final_app_secret, is_lark=lark, auth_mode=final_auth_mode)
+            exporter = FeishuExporter(app_id=final_app_id, app_secret=final_app_secret, is_lark=lark, auth_mode=final_auth_mode, redirect_uri=final_redirect_uri, user_id=final_user_id)
             access_token = exporter.get_access_token()
 
         # 解析 URL 获取 document_id

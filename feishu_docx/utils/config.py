@@ -50,6 +50,7 @@ class AppConfig:
     app_secret: Optional[str] = None
     is_lark: bool = False
     auth_mode: str = "tenant"  # "tenant" (默认) 或 "oauth"
+    redirect_uri: Optional[str] = None
 
     # 配置文件路径
     _config_file: Path = None  # type: ignore
@@ -68,6 +69,7 @@ class AppConfig:
                 config.app_secret = data.get("app_secret")
                 config.is_lark = data.get("is_lark", False)
                 config.auth_mode = data.get("auth_mode", "tenant")
+                config.redirect_uri = data.get("redirect_uri")
             except Exception:
                 pass  # 配置文件损坏，使用默认值
         return config
@@ -79,6 +81,7 @@ class AppConfig:
             "app_secret": self.app_secret,
             "is_lark": self.is_lark,
             "auth_mode": self.auth_mode,
+            "redirect_uri": self.redirect_uri,
         }
         self._config_file.write_text(
             json.dumps(data, indent=2, ensure_ascii=False),

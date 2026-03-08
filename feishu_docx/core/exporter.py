@@ -91,6 +91,8 @@ class FeishuExporter:
             access_token: Optional[str] = None,
             is_lark: bool = False,
             auth_mode: str = "tenant",
+            redirect_uri: Optional[str] = None,
+            user_id: Optional[str] = None,
     ):
         """
         初始化导出器
@@ -101,11 +103,15 @@ class FeishuExporter:
             access_token: 访问凭证（手动传入）
             is_lark: 是否使用 Lark (海外版)
             auth_mode: 认证模式 "tenant" (默认) 或 "oauth"
+            redirect_uri: 自定义 OAuth 回调地址
+            user_id: 用户标识，用于隔离 OAuth token 缓存
         """
         self.app_id = app_id
         self.app_secret = app_secret
         self.is_lark = is_lark
         self.auth_mode = auth_mode
+        self.redirect_uri = redirect_uri
+        self.user_id = user_id
         self._access_token = access_token
         self._authenticator = None  # OAuth2Authenticator 或 TenantAuthenticator
         self._sdk: Optional[FeishuSDK] = None
@@ -158,6 +164,8 @@ class FeishuExporter:
                     app_id=self.app_id,
                     app_secret=self.app_secret,
                     is_lark=self.is_lark,
+                    redirect_uri=self.redirect_uri,
+                    user_id=self.user_id,
                 )
 
         # 根据认证器类型调用不同方法

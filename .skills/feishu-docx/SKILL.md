@@ -7,19 +7,12 @@ description: Export Feishu/Lark cloud documents to Markdown. Supports docx, shee
 
 Export Feishu/Lark cloud documents to Markdown format for AI analysis.
 
-## Setup (One-time)
-
-```bash
-pip install feishu-docx
-feishu-docx config set --app-id YOUR_APP_ID --app-secret YOUR_APP_SECRET
-```
-
-> Token auto-refreshes. No user interaction required.
+> **All commands require `--user-id <USER_ID>`** to specify which user's token to use.
 
 ## Export Documents
 
 ```bash
-feishu-docx export "<FEISHU_URL>" -o ./output
+feishu-docx export "<FEISHU_URL>" -o ./output --user-id <USER_ID>
 ```
 
 The exported Markdown file will be saved with the document's title as filename.
@@ -35,71 +28,66 @@ The exported Markdown file will be saved with the document's title as filename.
 
 | Command | Description |
 |---------|-------------|
-| `feishu-docx export <URL>` | Export document to Markdown |
-| `feishu-docx create <TITLE>` | Create new document |
-| `feishu-docx write <URL>` | Append content to document |
-| `feishu-docx update <URL>` | Update specific block |
-| `feishu-docx export-wiki-space <URL>` | Batch export entire wiki space |
-| `feishu-docx export-workspace-schema <ID>` | Export bitable database schema |
-| `feishu-docx auth` | OAuth authorization |
-| `feishu-docx config set` | Set credentials |
-| `feishu-docx config show` | Show current config |
-| `feishu-docx config clear` | Clear token cache |
-| `feishu-docx tui` | Interactive TUI interface |
+| `feishu-docx export <URL> --user-id <USER_ID>` | Export document to Markdown |
+| `feishu-docx create <TITLE> --user-id <USER_ID>` | Create new document |
+| `feishu-docx write <URL> --user-id <USER_ID>` | Append content to document |
+| `feishu-docx update <URL> --user-id <USER_ID>` | Update specific block |
+| `feishu-docx export-wiki-space <URL> --user-id <USER_ID>` | Batch export entire wiki space |
+| `feishu-docx export-workspace-schema <ID> --user-id <USER_ID>` | Export bitable database schema |
 
 ## Examples
 
 ### Export a wiki page
 
 ```bash
-feishu-docx export "https://xxx.feishu.cn/wiki/ABC123" -o ./docs
+feishu-docx export "https://xxx.feishu.cn/wiki/ABC123" -o ./docs --user-id <USER_ID>
 ```
 
 ### Export a document with custom filename
 
 ```bash
-feishu-docx export "https://xxx.feishu.cn/docx/XYZ789" -o ./docs -n meeting_notes
+feishu-docx export "https://xxx.feishu.cn/docx/XYZ789" -o ./docs -n meeting_notes --user-id <USER_ID>
 ```
 
 ### Read content directly (recommended for AI Agent)
 
 ```bash
 # Output content to stdout instead of saving to file
-feishu-docx export "https://xxx.feishu.cn/wiki/ABC123" --stdout
+feishu-docx export "https://xxx.feishu.cn/wiki/ABC123" --stdout --user-id <USER_ID>
 # or use short flag
-feishu-docx export "https://xxx.feishu.cn/wiki/ABC123" -c
+feishu-docx export "https://xxx.feishu.cn/wiki/ABC123" -c --user-id <USER_ID>
 ```
 
 ### Export with Block IDs (for later updates)
 
 ```bash
 # Include block IDs as HTML comments in the Markdown output
-feishu-docx export "https://xxx.feishu.cn/wiki/ABC123" --with-block-ids
+feishu-docx export "https://xxx.feishu.cn/wiki/ABC123" --with-block-ids --user-id <USER_ID>
 # or use short flag
-feishu-docx export "https://xxx.feishu.cn/wiki/ABC123" -b
+feishu-docx export "https://xxx.feishu.cn/wiki/ABC123" -b --user-id <USER_ID>
 ```
 
 ### Batch Export Entire Wiki Space
 
 ```bash
 # Export all documents in a wiki space (auto-extract space_id from URL)
-feishu-docx export-wiki-space "https://xxx.feishu.cn/wiki/ABC123" -o ./wiki_backup
+feishu-docx export-wiki-space "https://xxx.feishu.cn/wiki/ABC123" -o ./wiki_backup --user-id <USER_ID>
 
 # Specify depth limit
-feishu-docx export-wiki-space "https://xxx.feishu.cn/wiki/ABC123" -o ./docs --max-depth 3
+feishu-docx export-wiki-space "https://xxx.feishu.cn/wiki/ABC123" -o ./docs --max-depth 3 --user-id <USER_ID>
 
 # Export with Block IDs for later updates
-feishu-docx export-wiki-space "https://xxx.feishu.cn/wiki/ABC123" -o ./docs -b
+feishu-docx export-wiki-space "https://xxx.feishu.cn/wiki/ABC123" -o ./docs -b --user-id <USER_ID>
 ```
 
 ### Export Database Schema
 
 ```bash
 # Export bitable/workspace database schema as Markdown
-feishu-docx export-workspace-schema <workspace_id>
+feishu-docx export-workspace-schema <workspace_id> --user-id <USER_ID>
 
 # Specify output file
-feishu-docx export-workspace-schema <workspace_id> -o ./schema.md
+feishu-docx export-workspace-schema <workspace_id> -o ./schema.md --user-id <USER_ID>
 ```
 
 ## Write Documents (CLI)
@@ -108,16 +96,16 @@ feishu-docx export-workspace-schema <workspace_id> -o ./schema.md
 
 ```bash
 # Create empty document
-feishu-docx create "我的笔记"
+feishu-docx create "我的笔记" --user-id <USER_ID>
 
 # Create with Markdown content
-feishu-docx create "会议记录" -c "# 会议纪要\n\n- 议题一\n- 议题二"
+feishu-docx create "会议记录" -c "# 会议纪要\n\n- 议题一\n- 议题二" --user-id <USER_ID>
 
 # Create from Markdown file
-feishu-docx create "周报" -f ./weekly_report.md
+feishu-docx create "周报" -f ./weekly_report.md --user-id <USER_ID>
 
 # Create in specific folder
-feishu-docx create "笔记" --folder fldcnXXXXXX
+feishu-docx create "笔记" --folder fldcnXXXXXX --user-id <USER_ID>
 ```
 
 **如何获取 folder token**:
@@ -129,17 +117,17 @@ feishu-docx create "笔记" --folder fldcnXXXXXX
 
 ```bash
 # Append Markdown content
-feishu-docx write "https://xxx.feishu.cn/docx/xxx" -c "## 新章节\n\n内容"
+feishu-docx write "https://xxx.feishu.cn/docx/xxx" -c "## 新章节\n\n内容" --user-id <USER_ID>
 
 # Append from file
-feishu-docx write "https://xxx.feishu.cn/docx/xxx" -f ./content.md
+feishu-docx write "https://xxx.feishu.cn/docx/xxx" -f ./content.md --user-id <USER_ID>
 ```
 
 ### Update Specific Block
 
 ```bash
 # Step 1: Export with Block IDs
-feishu-docx export "https://xxx.feishu.cn/docx/xxx" -b -o ./
+feishu-docx export "https://xxx.feishu.cn/docx/xxx" -b -o ./ --user-id <USER_ID>
 
 # Step 2: Find block ID from HTML comments
 # <!-- block:blk123abc -->
@@ -147,7 +135,7 @@ feishu-docx export "https://xxx.feishu.cn/docx/xxx" -b -o ./
 # <!-- /block -->
 
 # Step 3: Update the specific block
-feishu-docx update "https://xxx.feishu.cn/docx/xxx" -b blk123abc -c "新内容"
+feishu-docx update "https://xxx.feishu.cn/docx/xxx" -b blk123abc -c "新内容" --user-id <USER_ID>
 ```
 
 > **Tip for AI Agents**: When you need to update a specific section:
@@ -160,5 +148,4 @@ feishu-docx update "https://xxx.feishu.cn/docx/xxx" -b blk123abc -c "新内容"
 - Images auto-download to `{doc_title}/` folder
 - Use `--stdout` or `-c` for direct content output (recommended for agents)
 - Use `-b` to export with block IDs for later updates
-- Token auto-refreshes, no re-auth needed
 - For Lark (overseas): add `--lark` flag

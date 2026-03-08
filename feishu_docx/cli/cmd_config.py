@@ -50,6 +50,11 @@ def config_set(
             "--lark",
             help="使用 Lark (海外版)",
         ),
+        redirect_uri: Optional[str] = typer.Option(
+            None,
+            "--redirect-uri",
+            help="自定义 OAuth 回调地址（服务器部署时使用，如 http://my-server.com:9527/）",
+        ),
 ):
     """
     设置飞书应用凭证
@@ -78,6 +83,8 @@ def config_set(
         config.auth_mode = auth_mode
     if lark:
         config.is_lark = lark
+    if redirect_uri is not None:
+        config.redirect_uri = redirect_uri if redirect_uri else None
 
     # 交互式输入缺失的值
     if not config.app_id:
@@ -88,12 +95,14 @@ def config_set(
     config.save()
 
     auth_mode_desc = "tenant_access_token (无需授权页面)" if config.auth_mode == "tenant" else "OAuth 2.0 (浏览器授权)"
+    redirect_uri_desc = config.redirect_uri or "默认 (http://127.0.0.1:9527/)"
     console.print(Panel(
         f"✅ 配置已保存至: [cyan]{config.config_file}[/cyan]\n\n"
         f"App ID: [green]{config.app_id[:10]}...{config.app_id[-4:]}[/green]\n"
         f"App Secret: [dim]已保存（已隐藏）[/dim]\n"
         f"认证模式: [blue]{auth_mode_desc}[/blue]\n"
-        f"Lark 模式: {'是' if config.is_lark else '否'}\n\n"
+        f"Lark 模式: {'是' if config.is_lark else '否'}\n"
+        f"Redirect URI: [blue]{redirect_uri_desc}[/blue]\n\n"
         "现在你可以直接运行：\n"
         "  [cyan]feishu-docx export URL[/cyan] - 导出文档",
         title="配置成功",
@@ -141,6 +150,15 @@ def config_show():
     else:
         if not (app_secret_env or config.app_secret) and not (app_id_env or config.app_id):
             table.add_row("Access Token", "-", "[dim]未设置[/dim]")
+
+    # Redirect URI
+    redirect_uri_env = os.getenv("FEISHU_REDIRECT_URI")
+    if redirect_uri_env:
+        table.add_row("Redirect URI", "环境变量", redirect_uri_env)
+    elif config.redirect_uri:
+        table.add_row("Redirect URI", "配置文件", config.redirect_uri)
+    else:
+        table.add_row("Redirect URI", "-", "[dim]默认 (http://127.0.0.1:9527/)[/dim]")
 
     # Lark 模式
     table.add_row("Lark 模式", "配置文件", "是" if config.is_lark else "否")

@@ -93,6 +93,11 @@ def export(
             "--export-board-metadata",
             help="导出画板节点元数据（包含位置、大小、类型等信息）",
         ),
+        user_id: Optional[str] = typer.Option(
+            None,
+            "--user-id",
+            help="用户标识，使用指定用户的 OAuth token",
+        ),
 ):
     """
     [green]▶[/] 导出飞书文档为 Markdown
@@ -124,10 +129,10 @@ def export(
             exporter = FeishuExporter.from_token(token)
         else:
             # 获取凭证（命令行参数 > 环境变量 > 配置文件）
-            final_app_id, final_app_secret, final_auth_mode = get_credentials(app_id, app_secret, auth_mode)
+            final_app_id, final_app_secret, final_auth_mode, final_redirect_uri, final_user_id = get_credentials(app_id, app_secret, auth_mode, user_id=user_id)
 
             if final_app_id and final_app_secret:
-                exporter = FeishuExporter(app_id=final_app_id, app_secret=final_app_secret, is_lark=lark, auth_mode=final_auth_mode)
+                exporter = FeishuExporter(app_id=final_app_id, app_secret=final_app_secret, is_lark=lark, auth_mode=final_auth_mode, redirect_uri=final_redirect_uri, user_id=final_user_id)
             else:
                 console.print(
                     "[red]❌ 需要提供 Token 或 OAuth 凭证[/red]\n\n"
@@ -261,6 +266,7 @@ def export_wiki_space(
         app_secret: Optional[str] = typer.Option(None, "--app-secret", help="飞书应用 App Secret"),
         auth_mode: Optional[str] = typer.Option(None, "--auth-mode", help="认证模式: tenant / oauth"),
         lark: bool = typer.Option(False, "--lark", help="使用 Lark (海外版)"),
+        user_id: Optional[str] = typer.Option(None, "--user-id", help="用户标识，使用指定用户的 OAuth token"),
 ):
     """
     [green]▶[/] 批量导出知识空间下的所有文档
@@ -287,11 +293,11 @@ def export_wiki_space(
             exporter = FeishuExporter.from_token(token)
             access_token = token
         else:
-            final_app_id, final_app_secret, final_auth_mode = get_credentials(app_id, app_secret, auth_mode)
+            final_app_id, final_app_secret, final_auth_mode, final_redirect_uri, final_user_id = get_credentials(app_id, app_secret, auth_mode, user_id=user_id)
             if not final_app_id or not final_app_secret:
                 console.print("[red]❌ 需要提供凭证[/red]")
                 raise typer.Exit(1)
-            exporter = FeishuExporter(app_id=final_app_id, app_secret=final_app_secret, is_lark=lark, auth_mode=final_auth_mode)
+            exporter = FeishuExporter(app_id=final_app_id, app_secret=final_app_secret, is_lark=lark, auth_mode=final_auth_mode, redirect_uri=final_redirect_uri, user_id=final_user_id)
 
         console.print(f"[blue]> 输入:[/blue] {space_id_or_url}")
         console.print(f"[blue]> 输出目录:[/blue] {output}")

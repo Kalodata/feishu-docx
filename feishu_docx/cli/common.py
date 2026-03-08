@@ -28,7 +28,9 @@ def get_credentials(
         app_id: Optional[str] = None,
         app_secret: Optional[str] = None,
         auth_mode: Optional[str] = None,
-) -> tuple[Optional[str], Optional[str], str]:
+        redirect_uri: Optional[str] = None,
+        user_id: Optional[str] = None,
+) -> tuple[Optional[str], Optional[str], str, Optional[str], Optional[str]]:
     """
     获取凭证（优先级：命令行参数 > 环境变量 > 配置文件）
 
@@ -36,10 +38,14 @@ def get_credentials(
         app_id: 命令行传入的 App ID
         app_secret: 命令行传入的 App Secret
         auth_mode: 命令行传入的认证模式 (tenant/oauth)
+        redirect_uri: 命令行传入的 OAuth 回调地址
+        user_id: 命令行传入的用户标识
 
     Returns:
-        (app_id, app_secret, auth_mode)
+        (app_id, app_secret, auth_mode, redirect_uri, user_id)
         - auth_mode: "tenant" 使用 tenant_access_token，"oauth" 使用 user_access_token
+        - redirect_uri: OAuth 回调地址，None 时使用默认值
+        - user_id: 用户标识，用于隔离 OAuth token 缓存
     """
     # 加载配置文件作为 fallback
     config = AppConfig.load()
@@ -76,11 +82,25 @@ def get_credentials(
     if final_auth_mode not in ("tenant", "oauth"):
         final_auth_mode = "tenant"
 
+    # ========================================
+    # 4. 确定 redirect_uri (命令行 > 环境变量 > 配置 > None)
+    # ========================================
+    final_redirect_uri = (
+        redirect_uri
+        or os.getenv("FEISHU_REDIRECT_URI")
+        or config.redirect_uri
+    )
+
+    # ========================================
+    # 5. 确定 user_id (命令行 > 环境变量)
+    # ========================================
+    final_user_id = user_id or os.getenv("FEISHU_USER_ID")
+
     # 检查凭证完整性
     if final_app_id and final_app_secret:
-        return final_app_id, final_app_secret, final_auth_mode
+        return final_app_id, final_app_secret, final_auth_mode, final_redirect_uri, final_user_id
 
-    return None, None, final_auth_mode
+    return None, None, final_auth_mode, final_redirect_uri, final_user_id
 
 
 def normalize_folder_token(folder: Optional[str]) -> Optional[str]:
