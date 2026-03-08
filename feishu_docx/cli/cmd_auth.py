@@ -160,7 +160,7 @@ def auth_start(
 
         if not final_app_id or not final_app_secret:
             print("[auth-start] Credentials missing", file=sys.stderr, flush=True)
-            print(json.dumps({"error": "credentials_missing"}))
+            print(json.dumps({"error": "credentials_missing"}), flush=True)
             raise typer.Exit(1)
 
         # 先检查缓存 token
@@ -173,7 +173,7 @@ def auth_start(
         )
         if authenticator._load_from_cache() and not authenticator._token_info.is_expired():
             print("[auth-start] Cached token still valid", file=sys.stderr, flush=True)
-            print(json.dumps({"status": "authenticated"}))
+            print(json.dumps({"status": "authenticated"}), flush=True)
             return
 
         # 生成 state，构建 auth URL
@@ -214,12 +214,12 @@ def auth_start(
         )
         print(f"[auth-start] Server process started, pid={proc.pid}", file=sys.stderr, flush=True)
 
-        print(json.dumps({"url": auth_url, "pid": proc.pid, "log": str(log_file)}))
+        print(json.dumps({"url": auth_url, "pid": proc.pid, "log": str(log_file)}), flush=True)
 
     except typer.Exit:
         raise
     except Exception as e:
-        print(json.dumps({"error": str(e)}))
+        print(json.dumps({"error": str(e)}), flush=True)
         raise typer.Exit(1)
 
 
