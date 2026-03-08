@@ -20,6 +20,7 @@ import os
 import secrets
 import subprocess
 import sys
+import time
 from pathlib import Path
 from typing import Optional
 
@@ -213,6 +214,14 @@ def auth_start(
             stderr=log_fh,
         )
         print(f"[auth-start] Server process started, pid={proc.pid}", file=sys.stderr, flush=True)
+
+        time.sleep(0.5)
+        if proc.poll() is not None:
+            log_fh.close()
+            log_content = log_file.read_text(encoding="utf-8").strip()
+            print(f"[auth-start] Server exited immediately: {log_content}", file=sys.stderr, flush=True)
+            print(json.dumps({"error": "server_failed", "log": log_content}), flush=True)
+            raise typer.Exit(1)
 
         print(json.dumps({"url": auth_url, "pid": proc.pid, "log": str(log_file)}), flush=True)
 

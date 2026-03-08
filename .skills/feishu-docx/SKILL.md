@@ -9,26 +9,33 @@ Export Feishu/Lark cloud documents to Markdown format for AI analysis.
 
 > **All commands require `--user-id <USER_ID>`** to specify which user's token to use.
 
-## Authentication
+## Authentication (auth-first)
 
-When a command fails with a token error, use the **two-step auth flow** (Agent-friendly, non-blocking):
+**Before any command**, check auth status first:
 
 ```bash
-# Step 1: Start OAuth — returns JSON with URL and background server PID
+# Step 1: Check if already authenticated
+feishu-docx auth-check --user-id <USER_ID>
+# Output: {"authenticated": true}  → proceed to your command
+# Output: {"authenticated": false} → go to Step 2
+```
+
+If not authenticated, run the **two-step auth flow** (Agent-friendly, non-blocking):
+
+```bash
+# Step 2: Start OAuth — returns JSON with URL and background server PID
 feishu-docx auth-start --user-id <USER_ID>
 # Output: {"url": "https://accounts.feishu.cn/...", "pid": 12345}
 
-# Step 2: Present the URL to the user and ask them to authorize in browser
+# Step 3: Present the URL to the user and ask them to authorize in browser
 
-# Step 3: Check if authorization completed
+# Step 4: Poll until authorization completes
 feishu-docx auth-check --user-id <USER_ID>
-# Output: {"authenticated": true}  or  {"authenticated": false}
+# Output: {"authenticated": true}  → proceed to your command
 
-# Step 4: Clean up the background server
+# Step 5: Clean up the background server
 kill <pid>
 ```
-
-If `auth-start` returns `{"status": "authenticated"}`, a valid cached token already exists — no further action needed.
 
 **Alternative (interactive):** `feishu-docx auth --user-id <USER_ID>` runs the full OAuth flow in a single blocking command (opens browser, waits up to 2 minutes).
 
